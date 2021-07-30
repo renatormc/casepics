@@ -1,4 +1,9 @@
-## Criar apk
+# Descrição
+
+Aplicativo feito com [react-native](https://reactnative.dev/) para tiragem de fotos nomeadas e organizadas em pastas. As fotos tiradas podem ser copiadas para o computador através de um cabo USB e ficam armazenadas dentro da pasta Pictures/casepics.
+
+
+# Criar apk
 
 https://reactnative.dev/docs/signed-apk-android
 
@@ -22,5 +27,6 @@ MYAPP_UPLOAD_KEY_PASSWORD=***
 ## Gerar apk
 
 ```
+cd android
 ./gradlew app:assembleRelease
 ```
