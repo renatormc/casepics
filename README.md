@@ -1,6 +1,6 @@
 # Descrição
 
-Aplicativo feito com [react-native](https://reactnative.dev/) para tiragem de fotos nomeadas e organizadas em pastas. As fotos tiradas podem ser copiadas para o computador através de um cabo USB e ficam armazenadas dentro da pasta Pictures/casepics.
+Aplicativo feito com [react-native](https://reactnative.dev/) para tiragem de fotos nomeadas e organizadas em pastas. As fotos tiradas  ficam armazenadas dentro da pasta Pictures/casepics.
 
 
 # Criar apk
