@@ -3,7 +3,7 @@ import { TouchableOpacity, StyleSheet, View, Text, Dimensions } from 'react-nati
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import values from '../../values';
 
-export default function BottomSheet({onDelete, onRename}) {
+export default function BottomSheet({onDelete, onRename, onShare}) {
     return (
         <View style={styles.container}>
             <TouchableOpacity
@@ -26,6 +26,17 @@ export default function BottomSheet({onDelete, onRename}) {
                     <Icon style={styles.itemIcon} name="edit" size={18} />
                     <Text style={styles.text}>
                         Renomear
+                    </Text>
+                </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.item}
+                onPress={onShare}
+            >
+                <View style={styles.itemContainer}>
+                    <Icon style={styles.itemIcon} name="share" size={18} />
+                    <Text style={styles.text}>
+                        Compartilhar
                     </Text>
                 </View>
             </TouchableOpacity>

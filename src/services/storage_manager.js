@@ -1,7 +1,7 @@
 import * as RNFS from 'react-native-fs';
 import { PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { zip } from 'react-native-zip-archive'
 import sanitize from 'sanitize-filename';
 
 
@@ -164,7 +164,9 @@ const renameCase = async (oldName, newName) => {
 
 const saveNote = async (name, caseName, text) => {
     const path = `${PICS_FOLDER}/${caseName}/${name}.txt`;
+    console.log(text)
     text = text.trim();
+    console.log(text)
     if (text == "") {
         const exists = await RNFS.exists(path);
         if (exists) {
@@ -206,6 +208,13 @@ const getLastObjectName = async (caseName) => {
     return ""
 }
 
+const zipCase = async (caseName) => {
+    const caseFolder = `${PICS_FOLDER}/${caseName}`;
+    const tempFile = `${RNFS.DocumentDirectoryPath}/case.zip`;
+    const path = zip(caseFolder, tempFile);
+    return path;
+}
+
 
 export {
     savePicture,
@@ -222,5 +231,6 @@ export {
     saveNote,
     getNote, 
     saveLastObjectName, 
-    getLastObjectName
+    getLastObjectName,
+    zipCase
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
-import { getCases, createCase, renameCase, deleteCase } from '../../services/storage_manager';
+import { getCases, createCase, renameCase, deleteCase, zipCase } from '../../services/storage_manager';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import BottomSheet from "./bottom_sheet";
 import RBSheet from "react-native-raw-bottom-sheet";
@@ -105,6 +105,11 @@ const HomeScreen = ({navigation}) => {
         reloadCases();
     }
 
+    const share = async () => {
+        const path = await zipCase(cases[selectedCaseIndex]);
+        alert(path);
+    }
+
     useEffect(() => {
         reloadCases();
     }, []);
@@ -144,11 +149,11 @@ const HomeScreen = ({navigation}) => {
                     container: {
                         justifyContent: "flex-start",
                         alignItems: "flex-start",
-                        height: 120
+                        height: 200
                     }
                 }}
             >
-                <BottomSheet onDelete={deleteCaseWrapper} onRename={renameCaseWraper} />
+                <BottomSheet onDelete={deleteCaseWrapper} onRename={renameCaseWraper} onShare={share}/>
             </RBSheet>
 
             <TouchableOpacity
