@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, FlatList, SafeAreaView, TouchableOpacity, Share } from 'react-native';
 import { getCases, createCase, renameCase, deleteCase, zipCase } from '../../services/storage_manager';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import BottomSheet from "./bottom_sheet";
@@ -107,6 +107,10 @@ const HomeScreen = ({navigation}) => {
 
     const share = async () => {
         const path = await zipCase(cases[selectedCaseIndex]);
+        Share.share({
+            url: `file://${path}`,
+            title: 'Download PDF'
+          })
         alert(path);
     }
 
