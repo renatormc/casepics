@@ -120,7 +120,7 @@ const getCases = async () => {
     let entries = await RNFS.readDir(PICS_FOLDER);
     entries = entries.filter((entry) => entry.isDirectory());
     return entries.map(entry => {
-        return entry.name.replace(/\.[^/.]+$/, "")
+        return entry.name
     })
 
 }

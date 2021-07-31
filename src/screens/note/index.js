@@ -1,8 +1,9 @@
-import { Button, StyleSheet, View, TextInput, Text, TouchableOpacity } from 'react-native';
+import {  StyleSheet, View, TextInput } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import values from '../../values';
 import Header from './header';
 import { saveNote, getNote } from '../../services/storage_manager';
+
 // import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
@@ -65,7 +66,8 @@ const styles = StyleSheet.create({
         // borderWidth: 1,
         marginTop: 10,
         // borderColor: values.green_color,
-        textAlignVertical: 'top'
+        textAlignVertical: 'top',
+        color: values.green_color
     },
 
 })
