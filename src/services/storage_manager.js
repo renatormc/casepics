@@ -21,6 +21,13 @@ const getPics = async (caseName) => {
     })
 }
 
+const getCaseFiles = async (caseName) => {
+    let caseFolder = `${PICS_FOLDER}/${caseName}`;
+    await prepareFolder(caseFolder);
+    let files = await RNFS.readDir(caseFolder);
+    return files.map(file => "file://" + file.path + "#" + Math.random());
+}
+
 const clearFolder = async (caseName) => {
     let caseFolder = `${PICS_FOLDER}/${caseName}`;
     let files = await RNFS.readDir(caseFolder)
@@ -210,7 +217,13 @@ const getLastObjectName = async (caseName) => {
 
 const zipCase = async (caseName) => {
     const caseFolder = `${PICS_FOLDER}/${caseName}`;
-    const tempFile = `${RNFS.DocumentDirectoryPath}/case.zip`;
+    const tempDir = `/storage/emulated/0/Pictures/casepics_temp`;
+    const exists = await RNFS.exists(tempDir);
+    if (exists) {
+        await RNFS.unlink(tempDir);
+    }
+    await RNFS.mkdir(tempDir);
+    const tempFile = `${tempDir}/${caseName}.zip`;
     const path = zip(caseFolder, tempFile);
     return path;
 }
@@ -232,5 +245,6 @@ export {
     getNote, 
     saveLastObjectName, 
     getLastObjectName,
-    zipCase
+    zipCase,
+    getCaseFiles
 }

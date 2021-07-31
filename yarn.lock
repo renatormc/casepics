@@ -5392,6 +5392,11 @@ react-native-screens@^3.4.0:
   dependencies:
     warn-once "^0.1.0"
 
+react-native-share@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/react-native-share/-/react-native-share-7.0.0.tgz#38a1e875c216bf39564e40edcef246c7f5d95615"
+  integrity sha512-2ImJYJotFg3bTihNrQIqDKCAJ2xV0/MjGmH5MaC1GXDvGTeuU1L2/sFrJLHTAYi+K6D6VTWGbv5h9SzXtuo39Q==
+
 react-native-vector-icons@^8.1.0:
   version "8.1.0"
   resolved "https://registry.yarnpkg.com/react-native-vector-icons/-/react-native-vector-icons-8.1.0.tgz#e8ee2b17bc4d9f636da1c6f67feee8e2a850c3d8"
