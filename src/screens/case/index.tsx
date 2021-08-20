@@ -334,7 +334,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
                   style={styles.listPicture}
                   width={window.width * 0.3}
                   source={{ uri: "file://" + item.pic.path }} />
-                <Text style={styles.listImageText}>{item.pic.name + "|" +  item.pic.caseName}</Text>
+                <Text style={styles.listImageText}>{item.pic.name}</Text>
               </View>
 
             </TouchableOpacity>
