@@ -3,14 +3,17 @@ import * as React from 'react';
 import ToolbarButton from '../../components/toolbar_button';
 import values from '../../values';
 
+type Props = {
+  onReload: () => void
+}
 
-export default function Header({ onSave, title }) {
+export default function Header({ onReload }: Props) {
 
   return (
     <View style={styles.header}>
-      <Text style={styles.headerText}>{title}</Text>
+      <Text style={styles.headerText}>Casos</Text>
       <View style={styles.buttonsContainer}>
-        <ToolbarButton icon="save" onPress={onSave} />
+        <ToolbarButton icon="refresh" onPress={onReload} />
       </View>
     </View>
   );
@@ -34,7 +37,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontWeight: 'bold',
-    fontSize: 15,
-    color: "white"
+    fontSize: 20,
+    color: values.gold_color
   },
 })

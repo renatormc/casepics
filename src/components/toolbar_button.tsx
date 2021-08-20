@@ -3,8 +3,12 @@ import * as React from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import values from '../values';
 
+type Props = {
+    icon: string,
+    onPress: () => void
+  }
 
-export default function ToolbarButton({icon, onPress}) {
+export default function ToolbarButton({icon, onPress}: Props) {
     return (
         <View style={styles.container}>
             <Pressable
@@ -19,7 +23,6 @@ export default function ToolbarButton({icon, onPress}) {
 
         </Pressable >
         </View>
-        
     );
 }
 

@@ -8,20 +8,38 @@ import ImageViewer from 'react-native-image-zoom-viewer';
 import prompt from 'react-native-prompt-android';
 import { savePicture, getPics, clearFolder, deletePicture, renamePicture, saveLastObjectName, getLastObjectName } from "../../services/storage_manager";
 import values from '../../values';
+import { RouteProp } from '@react-navigation/native';
+import { RootNavigationParamsList } from '../../navigation/root_navigator';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { Pic } from '../../types/interfaces';
+import { useMemo } from 'react';
 
 
-const CaseScreen = ({ route, navigation }) => {
+type CaseScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Note'>;
+type CaseScreenRouteProp = RouteProp<RootNavigationParamsList, 'Note'>;
 
-  // const navigation = useNavigation();
+type Props = {
 
-  const [objName, setObjName] = useState("");
-  const [pics, setPics] = useState([]);
-  const [selectedPicIndex, setSelectedPicIndex] = useState(-1);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [imageModalUrl, setImageModalUrl] = useState("");
-  const refRBSheet = useRef();
+  navigation: CaseScreenNavigationProp,
+  route: CaseScreenRouteProp
+};
+
+
+const CaseScreen = ({ route, navigation }: Props) => {
+
+ 
+  const [objName, setObjName] = useState<string>("");
+  const [pics, setPics] = useState<Pic[]>([]);
+  const [selectedPicIndex, setSelectedPicIndex] = useState<number>(-1);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [imageModalUrl, setImageModalUrl] = useState<string>("");
+  const refRBSheet = useRef<RBSheet>(null);
   const caseName = route.params.caseName;
   const window = useWindowDimensions();
+
+  // const orderedPics = useMemo<Pic[]>(()=>{
+  //   return pics;
+  // }, [pics]);
 
   const reloadPics = async () => {
     try {
@@ -84,27 +102,27 @@ const CaseScreen = ({ route, navigation }) => {
       if (granted === PermissionsAndroid.RESULTS.GRANTED) {
         launchCamera({
           quality: 1,
-          storageOptions: {
-            skipBackup: true,
-            privateDirectory: true
-          },
+          mediaType: 'photo'
+          // storageOptions: {
+          //   skipBackup: true,
+          //   privateDirectory: true
+          // },
         }, async (response) => {
           if (response.didCancel) {
             console.log('User cancelled image picker');
-          } else if (response.error) {
-            console.log('ImagePicker Error: ', response.error);
-          } else if (response.customButton) {
-            console.log('User tapped custom button: ', response.customButton);
+          } else if (response.errorMessage) {
+            console.log('ImagePicker Error: ', response.errorMessage);
           } else {
-            const uri = response.assets[0].uri
-            try {
-              const info = await savePicture(uri, objName, caseName);
-              let number = Math.random();
-              setPics([...pics, { source: "file://" + info.path + "#" + number, name: info.name }]);
-            } catch (error) {
-              console.log(error)
+            const uri = response.assets?.[0].uri;
+            if (uri != undefined) {
+              try {
+                const info = await savePicture(uri, objName, caseName);
+                let number = Math.random();
+                setPics([...pics, { source: "file://" + info.path + "#" + number, name: info.name }]);
+              } catch (error) {
+                console.log(error)
+              }
             }
-
 
           }
         });
@@ -134,34 +152,33 @@ const CaseScreen = ({ route, navigation }) => {
     try {
       launchImageLibrary({
         selectionLimit: 0,
-        storageOptions: {
-          skipBackup: true,
-          path: '/storage/emulated/0/DCIM'
-        },
+        mediaType: 'photo'
+        // storageOptions: {
+        //   skipBackup: true,
+        //   path: '/storage/emulated/0/DCIM'
+        // },
       }, async (response) => {
         if (response.didCancel) {
           console.log('User cancelled image picker');
-        } else if (response.error) {
-          console.log('ImagePicker Error: ', response.error);
-        } else if (response.customButton) {
-          console.log('User tapped custom button: ', response.customButton);
+        } else if (response.errorMessage) {
+          console.log('ImagePicker Error: ', response.errorMessage);
         } else {
           let assets = response.assets;
-          let newPics = [];
-          for (let index = 0; index < assets.length; index++) {
-            const uri = assets[index].uri;
-            try {
-              const info = await savePicture(uri, objName, caseName);
-              let number = Math.random();
-              newPics.push({ source: "file://" + info.path + "#" + number, name: info.name });
+          if (assets != undefined) {
+            let newPics = [];
+            for (let index = 0; index < assets.length; index++) {
+              const uri = assets[index].uri;
+              try {
+                const info = await savePicture(uri!, objName, caseName);
+                let number = Math.random();
+                newPics.push({ source: "file://" + info.path + "#" + number, name: info.name });
 
-            } catch (error) {
-              console.log(error)
+              } catch (error) {
+                console.log(error)
+              }
             }
+            setPics([...pics, ...newPics]);
           }
-          setPics([...pics, ...newPics]);
-
-
 
         }
       });
@@ -171,19 +188,19 @@ const CaseScreen = ({ route, navigation }) => {
   }
 
   const deletePic = async () => {
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
     try {
       await deletePicture(pics[selectedPicIndex].name, caseName)
       pics.splice(selectedPicIndex, 1)
       setPics(pics);
       setSelectedPicIndex(-1);
     } catch (error) {
-      alert(error)
+      console.log(error)
     }
   }
 
   const renamePic = async () => {
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
     const pic = pics[selectedPicIndex]
     prompt(
       'Novo nome',
@@ -208,13 +225,12 @@ const CaseScreen = ({ route, navigation }) => {
               setPics(copyPics);
 
             } catch (error) {
-              alert(error)
+              console.log(error)
             }
           }
         },
       ],
       {
-        type: 'text',
         cancelable: false,
         defaultValue: pics[selectedPicIndex].name,
         placeholder: 'Novo nome'
@@ -223,12 +239,12 @@ const CaseScreen = ({ route, navigation }) => {
 
   }
 
-  const vizualizePic = async (pic) => {
+  const vizualizePic = async (pic?: Pic) => {
     if (pic == undefined) {
       pic = pics[selectedPicIndex];
     }
-    refRBSheet.current.close();
-    setImageModalUrl(pic.source);
+    refRBSheet.current?.close();
+    // setImageModalUrl(pic.source);
     setModalVisible(true);
   }
 
@@ -266,7 +282,7 @@ const CaseScreen = ({ route, navigation }) => {
         placeholder="Nome do objeto"
       />
       <SafeAreaView>
-        <FlatList
+        <FlatList<Pic>
           horizontal={false}
           data={pics}
           numColumns={3}
@@ -280,13 +296,13 @@ const CaseScreen = ({ route, navigation }) => {
               }}
               onLongPress={() => {
                 setSelectedPicIndex(index);
-                refRBSheet.current.open();
+                refRBSheet.current?.open();
               }}
             >
               <View style={styles.listItemInnerContainer}>
                 <Image
                   style={styles.listPicture}
-                  width={window.width*0.3}
+                  width={window.width * 0.3}
                   source={{ uri: item.source }} />
                 <Text style={styles.listImageText}>{item.name}</Text>
               </View>

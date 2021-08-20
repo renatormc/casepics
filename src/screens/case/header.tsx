@@ -3,8 +3,16 @@ import * as React from 'react';
 import ToolbarButton from '../../components/toolbar_button';
 import values from '../../values';
 
+type Props = {
+  title: string,
+  onTakePicture: () => void,
+  onReload: () => void,
+  onClear: () => void,
+  onChoosePhoto: () => void,
+  onBack: () => void,
+}
 
-export default function Header({ onTakePicture, onReload, onClear, onChoosePhoto, onBack, title }) {
+export default function Header({ onTakePicture, onReload, onClear, onChoosePhoto, onBack, title }: Props) {
 
   return (
     <View style={styles.header}>

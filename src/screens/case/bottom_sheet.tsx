@@ -1,14 +1,35 @@
-import React from 'react'
+import React, { Component } from 'react'
 import { TouchableOpacity, StyleSheet, View, Text, Dimensions } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import values from '../../values';
 
-export default function BottomSheet({onDelete, onRename, onShare}) {
+
+type Props = {
+    onVizualizePress: () => void,
+    onDeletePress: () => void,
+    onRenamePress: () => void,
+    onEditNote: () => void,
+}
+
+export default function BottomSheed({ onVizualizePress, onDeletePress, onRenamePress, onEditNote }: Props) {
     return (
         <View style={styles.container}>
+
             <TouchableOpacity
                 style={styles.item}
-                onPress={onDelete}
+                onPress={onVizualizePress}
+            >
+                <View style={styles.itemContainer}>
+                    <Icon style={styles.itemIcon} name="visibility" size={18} />
+                    <Text style={styles.text}>
+                        Vizualizar
+                    </Text>
+                </View>
+
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.item}
+                onPress={onDeletePress}
             >
                 <View style={styles.itemContainer}>
                     <Icon style={styles.itemIcon} name="delete" size={18} />
@@ -20,7 +41,7 @@ export default function BottomSheet({onDelete, onRename, onShare}) {
             </TouchableOpacity>
             <TouchableOpacity
                 style={styles.item}
-                onPress={onRename}
+                onPress={onRenamePress}
             >
                 <View style={styles.itemContainer}>
                     <Icon style={styles.itemIcon} name="edit" size={18} />
@@ -31,12 +52,12 @@ export default function BottomSheet({onDelete, onRename, onShare}) {
             </TouchableOpacity>
             <TouchableOpacity
                 style={styles.item}
-                onPress={onShare}
+                onPress={onEditNote}
             >
                 <View style={styles.itemContainer}>
-                    <Icon style={styles.itemIcon} name="share" size={18} />
+                    <Icon style={styles.itemIcon} name="description" size={18} />
                     <Text style={styles.text}>
-                        Compartilhar
+                        Editar nota
                     </Text>
                 </View>
             </TouchableOpacity>
@@ -64,7 +85,7 @@ const styles = StyleSheet.create({
         padding: 15,
         // borderBottomWidth: 1,
         // borderColor: values.green_color,
-        width: "100%"
+        // width: "100%"
     },
     text: {
         fontSize: 18,
@@ -72,7 +93,7 @@ const styles = StyleSheet.create({
         color: values.gold_color
     },
     itemIcon: {
-        color: "grey",
+        // color: "grey",
         color: values.gold_color
     }
 });

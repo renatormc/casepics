@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import {
   StyleSheet,
@@ -24,11 +24,24 @@ import prompt from 'react-native-prompt-android';
 import Header from './header';
 import values from '../../values';
 import Share from 'react-native-share';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+import { RootNavigationParamsList } from '../../navigation/root_navigator';
 
-const HomeScreen = ({navigation}) => {
-  [cases, setCases] = useState([]);
-  [selectedCaseIndex, setSelectedCaseIndex] = useState(-1);
-  const refRBSheet = useRef();
+type HomeScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Home'>;
+type HomeScreenRouteProp = RouteProp<RootNavigationParamsList, 'Home'>;
+
+type Props = {
+
+  navigation: HomeScreenNavigationProp,
+  route: HomeScreenRouteProp
+};
+
+
+const HomeScreen = ({ navigation }: Props) => {
+  const [cases, setCases] = useState<string[]>([]);
+  const [selectedCaseIndex, setSelectedCaseIndex] = useState<number>(-1);
+  const refRBSheet = useRef<RBSheet>(null);
 
   const reloadCases = async () => {
     let cases_ = await getCases();
@@ -40,7 +53,7 @@ const HomeScreen = ({navigation}) => {
       'Nome',
       '',
       [
-        {text: 'Cancelar', style: 'cancel'},
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'OK',
           onPress: async name => {
@@ -52,13 +65,13 @@ const HomeScreen = ({navigation}) => {
               const createdName = await createCase(name);
               setCases([...cases, createdName]);
             } catch (error) {
-              alert(error);
+              console.log(error);
             }
           },
         },
       ],
       {
-        type: 'text',
+        // type: 'text',
         cancelable: false,
         placeholder: 'Nome do caso',
       },
@@ -66,12 +79,12 @@ const HomeScreen = ({navigation}) => {
   };
 
   const renameCaseWraper = async () => {
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
     prompt(
       'Nome',
       '',
       [
-        {text: 'Cancelar', style: 'cancel'},
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'OK',
           onPress: async name => {
@@ -87,13 +100,13 @@ const HomeScreen = ({navigation}) => {
               copyCases[selectedCaseIndex] = newName;
               setCases(copyCases);
             } catch (error) {
-              alert(error);
+              console.log(error);
             }
           },
         },
       ],
       {
-        type: 'text',
+        // type: 'text',
         cancelable: false,
         defaultValue: cases[selectedCaseIndex],
         placeholder: 'Nome do caso',
@@ -101,19 +114,19 @@ const HomeScreen = ({navigation}) => {
     );
   };
 
-  const openCase = async caseName => {
+  const openCase = async (caseName: string) => {
     if (caseName == undefined) {
       caseName = cases[selectedCaseIndex];
     }
     caseName = caseName.toString();
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
     navigation.navigate('Case', {
       caseName: caseName.toString(),
     });
   };
 
   const deleteCaseWrapper = async () => {
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
     await deleteCase(cases[selectedCaseIndex]);
     reloadCases();
   };
@@ -122,6 +135,7 @@ const HomeScreen = ({navigation}) => {
     const caseName = cases[selectedCaseIndex];
     const pics = await getCaseFiles(caseName);
     const options = {
+      title: 'Compartilhar',
       message: caseName,
       urls: pics,
     };
@@ -132,13 +146,14 @@ const HomeScreen = ({navigation}) => {
       .catch(err => {
         err && console.log(err);
       });
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
   };
 
   const zipAndSharePics = async () => {
     const caseName = cases[selectedCaseIndex];
     const path = await zipCase(caseName);
     const options = {
+      title: 'Compartilhar',
       message: caseName,
       url: `file://${path}`,
     };
@@ -149,7 +164,7 @@ const HomeScreen = ({navigation}) => {
       .catch(err => {
         err && console.log(err);
       });
-    refRBSheet.current.close();
+    refRBSheet.current?.close();
   };
 
   const share = async () => {
@@ -173,10 +188,10 @@ const HomeScreen = ({navigation}) => {
     <View style={styles.container}>
       <Header onReload={reloadCases} />
       <SafeAreaView>
-        <FlatList
+        <FlatList<string>
           horizontal={false}
           data={cases}
-          renderItem={({item, index}) => (
+          renderItem={({ item, index }) => (
             <TouchableOpacity
               style={styles.listItemContainer}
               delayLongPress={200}
@@ -186,7 +201,7 @@ const HomeScreen = ({navigation}) => {
               }}
               onLongPress={() => {
                 setSelectedCaseIndex(index);
-                refRBSheet.current.open();
+                refRBSheet.current?.open();
               }}>
               <View style={styles.listItemInnerContainer}>
                 <Text style={styles.listText}>{item}</Text>

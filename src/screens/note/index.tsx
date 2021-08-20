@@ -3,11 +3,21 @@ import React, { useState, useEffect } from 'react';
 import values from '../../values';
 import Header from './header';
 import { saveNote, getNote } from '../../services/storage_manager';
+import { RouteProp } from '@react-navigation/native';
+import { RootNavigationParamsList } from '../../navigation/root_navigator';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-// import Icon from 'react-native-vector-icons/MaterialIcons';
+type NoteScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Note'>;
+type NoteScreenRouteProp = RouteProp<RootNavigationParamsList, 'Note'>;
+
+type Props = {
+
+  navigation: NoteScreenNavigationProp,
+  route: NoteScreenRouteProp
+};
 
 
-export default function NoteScreen({ navigation, route }) {
+export default function NoteScreen({ navigation, route }: Props) {
 
     const [noteText, setNoteText] = useState("");
     const caseName = route.params.caseName;
