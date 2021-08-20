@@ -3,7 +3,7 @@ import { PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { zip } from 'react-native-zip-archive'
 import sanitize from 'sanitize-filename';
-import { Pic } from '../types/interfaces';
+import { Pic, CaseExistsError } from '../types/interfaces';
 
 
 // const PICS_FOLDER = `${RNFU.PicturesDirectoryPath}/casepics`
@@ -17,7 +17,10 @@ const getPics = async (caseName: string): Promise<Pic[]> => {
     return files.map(file => {
         return {
             name: file.name.replace(/\.[^/.]+$/, ""),
-            source: "file://" + file.path + "#" + Math.random()
+            // source: "file://" + file.path + "#" + Math.random()
+            path: file.path,
+            timestamp: file.ctime?.getTime(),
+            caseName: caseName
         }
     })
 }
@@ -37,11 +40,11 @@ const clearFolder = async (caseName: string): Promise<void> => {
     });
 }
 
-const deletePicture = async (picName: string, caseName: string): Promise<void> => {
-    const caseFolder = `${PICS_FOLDER}/${caseName}`;
-    const picPath = `${caseFolder}/${picName}.jpg`
-    const notePath = `${caseFolder}/${picName}.txt`
-    await RNFS.unlink(picPath)
+const deletePicture = async (pic: Pic): Promise<void> => {
+    const caseFolder = `${PICS_FOLDER}/${pic.caseName}`;
+    // const picPath = `${caseFolder}/${pic.a}.jpg`
+    const notePath = `${caseFolder}/${pic.name}.txt`
+    await RNFS.unlink(pic.path)
     if (await RNFS.exists(notePath)) {
         await RNFS.unlink(notePath)
     }
@@ -49,24 +52,28 @@ const deletePicture = async (picName: string, caseName: string): Promise<void> =
 }
 
 
-async function renamePicture(oldName: string, newName: string, caseName: string): Promise<{newName: string, newPicPath: string}> {
+async function renamePicture(pic: Pic, newName: string): Promise<Pic> {
     newName = sanitize(newName);
-    const caseFolder = `${PICS_FOLDER}/${caseName}`;
-    const oldPicPath = `${caseFolder}/${oldName}.jpg`
-    const oldNotePath = `${caseFolder}/${oldName}.txt`
+    const caseFolder = `${PICS_FOLDER}/${pic.caseName}`;
+    // const oldPicPath = `${caseFolder}/${p}.jpg`
+    const oldNotePath = `${caseFolder}/${pic.name}.txt`
     const newPicPath = `${caseFolder}/${newName}.jpg`
     const newNotePath = `${caseFolder}/${newName}.txt`
-    await RNFS.moveFile(oldPicPath, newPicPath);
+    await RNFS.moveFile(pic.path, newPicPath);
     if (await RNFS.exists(oldNotePath)) {
         await RNFS.moveFile(oldNotePath, newNotePath);
     }
-    return {
-        newName: newName,
-        newPicPath: newPicPath
-    }
+    pic.name = newName;
+    pic.path = newPicPath;
+    return pic;
 }
 
-async function savePicture(tempPath: string, name: string, caseName: string) {
+async function getCTime(path: string): Promise<number> {
+    const info = await RNFS.stat(path);
+    return info.ctime;
+}
+
+async function savePicture(tempPath: string, name: string, caseName: string): Promise<Pic> {
     name = sanitize(name);
     let caseFolder = `${PICS_FOLDER}/${caseName}`;
     await prepareFolder(caseFolder);
@@ -85,10 +92,13 @@ async function savePicture(tempPath: string, name: string, caseName: string) {
         tempPath = tempPath.replace("file://", "");
     }
     await RNFS.moveFile(tempPath, destPath)
+    const ctime = await getCTime(destPath);
     return {
         name: newName,
-        path: destPath
-    }
+        path: destPath,
+        caseName: caseName,
+        timestamp: ctime
+    } as Pic
 }
 
 const permissionWriteExternalStorage = async (): Promise<boolean> => {
@@ -123,7 +133,7 @@ const prepareFolder = async (folder?: string): Promise<void> => {
 }
 
 
-const getCases = async () => {
+const getCases = async (): Promise<string[]> => {
     await prepareFolder();
     let entries = await RNFS.readDir(PICS_FOLDER);
     entries = entries.filter((entry) => entry.isDirectory());
@@ -137,12 +147,12 @@ const createCase = async (name: string): Promise<string> => {
     name = sanitize(name);
     const path = `${PICS_FOLDER}/${name}`;
     const exists = await RNFS.exists(path);
-    if (!exists) {
-        const perm = await permissionWriteExternalStorage();
-        if (perm) {
-            await RNFS.mkdir(path);;
-        }
-
+    if (exists) {
+        throw new CaseExistsError("Case already exists");
+    }
+    const perm = await permissionWriteExternalStorage();
+    if (perm) {
+        await RNFS.mkdir(path);;
     }
     return name;
 }
@@ -170,8 +180,8 @@ const renameCase = async (oldName: string, newName: string): Promise<string> => 
     return newName;
 }
 
-const saveNote = async (name: string, caseName: string, text: string): Promise<void> => {
-    const path = `${PICS_FOLDER}/${caseName}/${name}.txt`;
+const saveNote = async (pic: Pic, text: string): Promise<void> => {
+    const path = `${PICS_FOLDER}/${pic.caseName}/${pic.name}.txt`;
     console.log(text)
     text = text.trim();
     console.log(text)
@@ -185,8 +195,8 @@ const saveNote = async (name: string, caseName: string, text: string): Promise<v
     RNFS.writeFile(path, text, 'utf8')
 }
 
-const getNote = async (name: string, caseName: string): Promise<string> => {
-    const path = `${PICS_FOLDER}/${caseName}/${name}.txt`;
+const getNote = async (pic: Pic): Promise<string> => {
+    const path = `${PICS_FOLDER}/${pic.caseName}/${pic.name}.txt`;
     const exists = await RNFS.exists(path);
     if (exists) {
         return await RNFS.readFile(path, 'utf8');
@@ -247,5 +257,6 @@ export {
     saveLastObjectName,
     getLastObjectName,
     zipCase,
-    getCaseFiles
+    getCaseFiles,
+    getCTime
 }

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 import {
   StyleSheet,
@@ -27,6 +28,7 @@ import Share from 'react-native-share';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootNavigationParamsList } from '../../navigation/root_navigator';
+import { CaseExistsError } from '../../types/interfaces';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Home'>;
 type HomeScreenRouteProp = RouteProp<RootNavigationParamsList, 'Home'>;
@@ -42,11 +44,16 @@ const HomeScreen = ({ navigation }: Props) => {
   const [cases, setCases] = useState<string[]>([]);
   const [selectedCaseIndex, setSelectedCaseIndex] = useState<number>(-1);
   const refRBSheet = useRef<RBSheet>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const reloadCases = async () => {
     let cases_ = await getCases();
     setCases(cases_);
   };
+
+  const orderedCases = useMemo<string[]>(() => {
+    return cases.sort((a, b) => a.localeCompare(b));
+  }, [cases]);
 
   const addNew = async () => {
     prompt(
@@ -65,7 +72,21 @@ const HomeScreen = ({ navigation }: Props) => {
               const createdName = await createCase(name);
               setCases([...cases, createdName]);
             } catch (error) {
-              console.log(error);
+              if (error instanceof CaseExistsError) {
+                Alert.alert(
+                  'Erro',
+                  `Já existe um caso de nome "${name}".`,
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => { }
+                    }
+                  ],
+                  { cancelable: false }
+                );
+              } else {
+                console.log(error);
+              }
             }
           },
         },
@@ -134,36 +155,63 @@ const HomeScreen = ({ navigation }: Props) => {
   const sharePics = async () => {
     const caseName = cases[selectedCaseIndex];
     const pics = await getCaseFiles(caseName);
-    const options = {
-      title: 'Compartilhar',
-      message: caseName,
-      urls: pics,
-    };
-    Share.open(options)
-      .then(res => {
-        console.log(res);
-      })
-      .catch(err => {
-        err && console.log(err);
-      });
-    refRBSheet.current?.close();
+
+    setLoading(true);
+    try {
+      const options = {
+        title: 'Compartilhar',
+        message: caseName,
+        urls: pics,
+      };
+      const res = await Share.open(options);
+    } catch (error) {
+      Alert.alert(
+        'Erro',
+        'Houve um erro!',
+        [
+          {
+            text: 'OK',
+            onPress: () => { }
+          }
+        ],
+        { cancelable: false }
+      );
+    } finally {
+      refRBSheet.current?.close();
+      setLoading(false);
+    }
+
+
   };
 
   const zipAndSharePics = async () => {
     const caseName = cases[selectedCaseIndex];
-    const path = await zipCase(caseName);
-    const options = {
-      title: 'Compartilhar',
-      message: caseName,
-      url: `file://${path}`,
-    };
-    Share.open(options)
-      .then(res => {
-        console.log(res);
-      })
-      .catch(err => {
-        err && console.log(err);
-      });
+    setLoading(true);
+    try {
+      const path = await zipCase(caseName);
+      const options = {
+        title: 'Compartilhar',
+        message: caseName,
+        url: `file://${path}`,
+      };
+      const res = await Share.open(options);
+    } catch (error) {
+      Alert.alert(
+        'Erro',
+        'Houve um erro!',
+        [
+          {
+            text: 'OK',
+            onPress: () => { }
+          }
+        ],
+        { cancelable: false }
+      );
+    } finally {
+      refRBSheet.current?.close();
+      setLoading(false);
+    }
+
     refRBSheet.current?.close();
   };
 
@@ -177,7 +225,11 @@ const HomeScreen = ({ navigation }: Props) => {
         text: 'Zipar e compartilhar',
         onPress: zipAndSharePics,
       },
-    ]);
+      {
+        text: 'Cancelar',
+        onPress: ()=>{},
+      },
+    ], { cancelable: false });
   };
 
   useEffect(() => {
@@ -188,9 +240,14 @@ const HomeScreen = ({ navigation }: Props) => {
     <View style={styles.container}>
       <Header onReload={reloadCases} />
       <SafeAreaView>
+        <Spinner
+          visible={loading}
+          textContent={'Aguarde...'}
+          textStyle={styles.spinnerTextStyle}
+        />
         <FlatList<string>
           horizontal={false}
-          data={cases}
+          data={orderedCases}
           renderItem={({ item, index }) => (
             <TouchableOpacity
               style={styles.listItemContainer}
@@ -271,6 +328,9 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     color: values.gold_color,
+  },
+  spinnerTextStyle: {
+    color: '#FFF',
   },
 });
 

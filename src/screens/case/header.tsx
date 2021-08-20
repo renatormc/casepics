@@ -1,18 +1,18 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import * as React from 'react';
 import ToolbarButton from '../../components/toolbar_button';
 import values from '../../values';
 
 type Props = {
   title: string,
+  refreshing: boolean,
   onTakePicture: () => void,
-  onReload: () => void,
   onClear: () => void,
   onChoosePhoto: () => void,
   onBack: () => void,
 }
 
-export default function Header({ onTakePicture, onReload, onClear, onChoosePhoto, onBack, title }: Props) {
+export default function Header({ onTakePicture, refreshing, onClear, onChoosePhoto, onBack, title }: Props) {
 
   return (
     <View style={styles.header}>
@@ -22,9 +22,11 @@ export default function Header({ onTakePicture, onReload, onClear, onChoosePhoto
       </View>
 
       <View style={styles.buttonsContainer}>
-
+        <Pressable>
+        <ActivityIndicator size={30} color={values.gold_color} animating={refreshing} />
+        </Pressable>
+      
         <ToolbarButton icon="delete" onPress={onClear} />
-        <ToolbarButton icon="refresh" onPress={onReload} />
         <ToolbarButton icon="collections" onPress={onChoosePhoto} />
         <ToolbarButton icon="photo-camera" onPress={onTakePicture} />
       </View>

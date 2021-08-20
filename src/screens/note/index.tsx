@@ -20,18 +20,18 @@ type Props = {
 export default function NoteScreen({ navigation, route }: Props) {
 
     const [noteText, setNoteText] = useState("");
-    const caseName = route.params.caseName;
-    const picName = route.params.picName;
+    const pic = route.params.pic;
+   
 
     const save = async () => {
-        await saveNote(picName, caseName, noteText);
+        await saveNote(pic, noteText);
         navigation.navigate('Case', {
-            caseName: caseName
+            caseName: pic.caseName
         });
     }
 
     const loadNote = async () => {
-       const text = await getNote(picName, caseName);
+       const text = await getNote(pic);
        setNoteText(text);
     }
 
@@ -42,7 +42,7 @@ export default function NoteScreen({ navigation, route }: Props) {
     return (
         <View style={styles.container}>
 
-            <Header title={`${caseName}/${picName}`} onSave={save} />
+            <Header title={`${pic.caseName}/${pic.name}`} onSave={save} />
             <TextInput
                 style={styles.input}
                 onChangeText={setNoteText}

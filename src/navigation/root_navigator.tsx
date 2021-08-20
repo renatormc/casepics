@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import CaseScreen from '../screens/case';
 import HomeScreen from '../screens/home';
 import NoteScreen from '../screens/note';
+import { Pic } from '../types/interfaces';
 
 
 export type RootNavigationParamsList = {
@@ -11,8 +12,7 @@ export type RootNavigationParamsList = {
         caseName: string
     },
     Note: {
-        caseName: string, 
-        picName: string
+        pic: Pic
     },
 };
 

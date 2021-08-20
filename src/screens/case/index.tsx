@@ -1,4 +1,4 @@
-import { TextInput, View, StyleSheet, Text, SafeAreaView, FlatList, TouchableOpacity, Modal, Alert, PermissionsAndroid, Image, useWindowDimensions } from 'react-native';
+import { TextInput, View, StyleSheet, Text, SafeAreaView, FlatList, TouchableOpacity, Modal, Alert, PermissionsAndroid, Image, useWindowDimensions, RefreshControl } from 'react-native';
 import React, { useState, useRef, useEffect } from 'react';
 import RBSheet from "react-native-raw-bottom-sheet";
 import Header from './header';
@@ -6,13 +6,15 @@ import BottomSheet from "./bottom_sheet"
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import prompt from 'react-native-prompt-android';
-import { savePicture, getPics, clearFolder, deletePicture, renamePicture, saveLastObjectName, getLastObjectName } from "../../services/storage_manager";
+import { savePicture, getPics, clearFolder, deletePicture, renamePicture, saveLastObjectName, getLastObjectName, getCTime } from "../../services/storage_manager";
 import values from '../../values';
 import { RouteProp } from '@react-navigation/native';
 import { RootNavigationParamsList } from '../../navigation/root_navigator';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Pic } from '../../types/interfaces';
+import { Pic, PicFilterResult } from '../../types/interfaces';
 import { useMemo } from 'react';
+import InputWidget from '../../components/input_widget';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
 type CaseScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Note'>;
@@ -27,26 +29,41 @@ type Props = {
 
 const CaseScreen = ({ route, navigation }: Props) => {
 
- 
+
   const [objName, setObjName] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [pics, setPics] = useState<Pic[]>([]);
   const [selectedPicIndex, setSelectedPicIndex] = useState<number>(-1);
+  const [selectedPicIndexFiltered, setSelectedPicIndexFiltered] = useState<number>(-1);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [imageModalUrl, setImageModalUrl] = useState<string>("");
+  // const [imageModalUrl, setImageModalUrl] = useState<string>("");
   const refRBSheet = useRef<RBSheet>(null);
   const caseName = route.params.caseName;
   const window = useWindowDimensions();
+  const [refreshing, setRefreshing] = React.useState<boolean>(true);
 
-  // const orderedPics = useMemo<Pic[]>(()=>{
-  //   return pics;
-  // }, [pics]);
+  const orderedPics = useMemo<PicFilterResult[]>(() => {
+    const mapedPics: PicFilterResult[] = pics.map((pic, index) => {
+      return {
+        pic,
+        index
+      }
+    })
+    const filtered = mapedPics.filter((item, index) => {
+      return item.pic.name.toLowerCase().includes(searchTerm.toLowerCase());
+    })
+    return filtered.sort((a, b) => a.pic.name.localeCompare(b.pic.name));
+  }, [pics, searchTerm]);
 
   const reloadPics = async () => {
+    setRefreshing(true);
     try {
       const pics = await getPics(caseName);
       setPics(pics)
     } catch (error) {
       console.log(error)
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -116,9 +133,8 @@ const CaseScreen = ({ route, navigation }: Props) => {
             const uri = response.assets?.[0].uri;
             if (uri != undefined) {
               try {
-                const info = await savePicture(uri, objName, caseName);
-                let number = Math.random();
-                setPics([...pics, { source: "file://" + info.path + "#" + number, name: info.name }]);
+                const newPic = await savePicture(uri, objName, caseName);
+                setPics([...pics, newPic]);
               } catch (error) {
                 console.log(error)
               }
@@ -165,13 +181,12 @@ const CaseScreen = ({ route, navigation }: Props) => {
         } else {
           let assets = response.assets;
           if (assets != undefined) {
-            let newPics = [];
+            let newPics: Pic[] = [];
             for (let index = 0; index < assets.length; index++) {
               const uri = assets[index].uri;
               try {
                 const info = await savePicture(uri!, objName, caseName);
-                let number = Math.random();
-                newPics.push({ source: "file://" + info.path + "#" + number, name: info.name });
+                newPics.push({ name: info.name, path: info.path, caseName: caseName, timestamp: await getCTime(info.path) });
 
               } catch (error) {
                 console.log(error)
@@ -190,10 +205,12 @@ const CaseScreen = ({ route, navigation }: Props) => {
   const deletePic = async () => {
     refRBSheet.current?.close();
     try {
-      await deletePicture(pics[selectedPicIndex].name, caseName)
-      pics.splice(selectedPicIndex, 1)
-      setPics(pics);
+      await deletePicture(pics[selectedPicIndex])
+      let newPics = [...pics];
+      newPics.splice(selectedPicIndex, 1)
+      setPics(newPics);
       setSelectedPicIndex(-1);
+      setSelectedPicIndexFiltered(-1);
     } catch (error) {
       console.log(error)
     }
@@ -214,14 +231,9 @@ const CaseScreen = ({ route, navigation }: Props) => {
               return
             }
             try {
-              const { newName, newPicPath } = await renamePicture(pic.name, name, caseName)
-              console.log(newPicPath)
-              const source = "file://" + newPicPath + "#" + Math.random();
+              const newPic = await renamePicture(pic, caseName)
               let copyPics = [...pics];
-              copyPics[selectedPicIndex] = {
-                source: source,
-                name: name
-              }
+              copyPics[selectedPicIndex] = newPic;
               setPics(copyPics);
 
             } catch (error) {
@@ -256,8 +268,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
 
   const editNote = async () => {
     navigation.navigate('Note', {
-      caseName: caseName,
-      picName: pics[selectedPicIndex].name
+      pic: pics[selectedPicIndex]
     });
   }
 
@@ -272,30 +283,49 @@ const CaseScreen = ({ route, navigation }: Props) => {
   }, []);
 
 
+
   return (
     <View style={styles.container}>
-      <Header title={caseName} onClear={clearFolderWrap} onTakePicture={takePicture} onReload={reloadPics} onChoosePhoto={pickPictures} onBack={goToCases} />
-      <TextInput
+      <Header title={`${caseName} (${orderedPics.length})`} onClear={clearFolderWrap} onTakePicture={takePicture} refreshing={refreshing} onChoosePhoto={pickPictures} onBack={goToCases} />
+      <InputWidget
         style={styles.input}
         onChangeText={setObjName}
         value={objName}
         placeholder="Nome do objeto"
+        icon="edit"
       />
+      <InputWidget
+        style={styles.input}
+        onChangeText={setSearchTerm}
+        value={searchTerm}
+        placeholder="Digite algo para pesquisar..."
+        icon="search"
+      />
+
+
       <SafeAreaView>
-        <FlatList<Pic>
+        <FlatList<PicFilterResult>
           horizontal={false}
-          data={pics}
+          data={orderedPics}
           numColumns={3}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={reloadPics}
+            />
+          }
           renderItem={({ item, index }) => (
             <TouchableOpacity
               style={styles.listItemContainer}
               delayLongPress={200}
               onPress={() => {
-                setSelectedPicIndex(index)
-                vizualizePic(item)
+                setSelectedPicIndex(item.index)
+                setSelectedPicIndexFiltered(index)
+                vizualizePic(item.pic)
               }}
               onLongPress={() => {
-                setSelectedPicIndex(index);
+                setSelectedPicIndex(item.index);
+                setSelectedPicIndexFiltered(index)
                 refRBSheet.current?.open();
               }}
             >
@@ -303,8 +333,8 @@ const CaseScreen = ({ route, navigation }: Props) => {
                 <Image
                   style={styles.listPicture}
                   width={window.width * 0.3}
-                  source={{ uri: item.source }} />
-                <Text style={styles.listImageText}>{item.name}</Text>
+                  source={{ uri: "file://" + item.pic.path }} />
+                <Text style={styles.listImageText}>{item.pic.name + "|" +  item.pic.caseName}</Text>
               </View>
 
             </TouchableOpacity>
@@ -318,10 +348,11 @@ const CaseScreen = ({ route, navigation }: Props) => {
         onRequestClose={() => {
           setModalVisible(false)
         }}>
-        <ImageViewer imageUrls={pics.map(pic => {
-          return { url: pic.source }
+        <ImageViewer imageUrls={orderedPics.map(item => {
+          // return { url: "file://" + pic.path + "#" + Math.random() }
+          return { url: "file://" + item.pic.path }
         })}
-          index={selectedPicIndex}
+          index={selectedPicIndexFiltered}
         />
       </Modal>
       <RBSheet
@@ -354,14 +385,14 @@ const styles = StyleSheet.create({
     backgroundColor: "white"
   },
   input: {
-    height: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: values.green_color,
-    paddingLeft: 5,
-    paddingRight: 5,
-    fontSize: 15,
-    fontWeight: "bold",
-    color: values.green_color
+    // height: 40,
+    // borderBottomWidth: 1,
+    // borderBottomColor: values.green_color,
+    // paddingLeft: 5,
+    // paddingRight: 5,
+    // fontSize: 15,
+    // fontWeight: "bold",
+    marginBottom: 5
   },
   listPicture: {
     flex: 1,
