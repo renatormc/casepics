@@ -5,12 +5,13 @@ import values from '../values';
 
 type Props = {
     icon: string,
+    style?: object,
     onPress: () => void
   }
 
-export default function ToolbarButton({icon, onPress}: Props) {
+export default function ToolbarButton({icon, onPress, style}: Props) {
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             <Pressable
             onPress={onPress}
             style={({ pressed }) => [
@@ -29,7 +30,7 @@ export default function ToolbarButton({icon, onPress}: Props) {
 
 const styles = StyleSheet.create({
     container: {
-        marginLeft: 15
+        // marginLeft: 15
     },
     icon: {
       color: values.gold_color,

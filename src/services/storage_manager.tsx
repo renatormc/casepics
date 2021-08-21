@@ -9,6 +9,10 @@ import { Pic, CaseExistsError } from '../types/interfaces';
 // const PICS_FOLDER = `${RNFU.PicturesDirectoryPath}/casepics`
 const PICS_FOLDER = "/storage/emulated/0/Pictures/casepics"
 
+const genUrlFile = (path: string): string =>{
+    return "file://" + path + "#" + Math.random();
+}
+
 const getPics = async (caseName: string): Promise<Pic[]> => {
     let caseFolder = `${PICS_FOLDER}/${caseName}`;
     await prepareFolder(caseFolder);
@@ -18,7 +22,7 @@ const getPics = async (caseName: string): Promise<Pic[]> => {
 
         return {
             name: file.name.replace(/\.[^/.]+$/, ""),
-            // source: "file://" + file.path + "#" + Math.random()
+            url: genUrlFile(file.path),
             path: file.path,
             timestamp: (await getCTime(file.path)),
             caseName: caseName
@@ -31,7 +35,7 @@ const getCaseFiles = async (caseName: string): Promise<string[]> => {
     let caseFolder = `${PICS_FOLDER}/${caseName}`;
     await prepareFolder(caseFolder);
     let files = await RNFS.readDir(caseFolder);
-    return files.map(file => "file://" + file.path + "#" + Math.random());
+    return files.map(file => genUrlFile(file.path));
 }
 
 const clearFolder = async (caseName: string): Promise<void> => {
@@ -67,6 +71,7 @@ async function renamePicture(pic: Pic, newName: string): Promise<Pic> {
     }
     pic.name = newName;
     pic.path = newPicPath;
+    pic.url = genUrlFile(newPicPath)
     return pic;
 }
 
@@ -98,6 +103,7 @@ async function savePicture(tempPath: string, name: string, caseName: string): Pr
     return {
         name: newName,
         path: destPath,
+        url: "file://" + destPath + "#" + Math.random(),
         caseName: caseName,
         timestamp: ctime
     } as Pic
@@ -260,5 +266,6 @@ export {
     getLastObjectName,
     zipCase,
     getCaseFiles,
-    getCTime
+    getCTime, 
+    genUrlFile
 }

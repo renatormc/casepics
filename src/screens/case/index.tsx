@@ -1,5 +1,4 @@
 import { View, StyleSheet, Text, SafeAreaView, FlatList, TouchableOpacity, Modal, Alert, PermissionsAndroid, Image, useWindowDimensions, RefreshControl } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import React, { useState, useRef, useEffect } from 'react';
 import RBSheet from "react-native-raw-bottom-sheet";
 import Header from './header';
@@ -7,7 +6,7 @@ import BottomSheet from "./bottom_sheet"
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import prompt from 'react-native-prompt-android';
-import { savePicture, getPics, clearFolder, deletePicture, renamePicture, saveLastObjectName, getLastObjectName, getCTime } from "../../services/storage_manager";
+import { savePicture, getPics, clearFolder, deletePicture, renamePicture, saveLastObjectName, getLastObjectName, getCTime, genUrlFile } from "../../services/storage_manager";
 import values from '../../values';
 import { RouteProp } from '@react-navigation/native';
 import { RootNavigationParamsList } from '../../navigation/root_navigator';
@@ -41,7 +40,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
   const caseName = route.params.caseName;
   const window = useWindowDimensions();
   const [refreshing, setRefreshing] = React.useState<boolean>(true);
-  const [sortBy, setSortBy] = useState<"timestamp" | "alpha">("alpha");
+  const [sortBy, setSortBy] = useState<"timestamp" | "alpha">("timestamp");
   const [showMenu, setShowMenu] = useState<boolean>(false);
 
   const orderedPics = useMemo<PicFilterResult[]>(() => {
@@ -68,7 +67,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
         return 1;
       });
     } else {
-      return filtered.sort((a, b) => a.pic.name.localeCompare(b.pic.name));
+      return filtered.sort((a, b) => a.pic.name.toLowerCase().localeCompare(b.pic.name.toLowerCase()));
     }
 
   }, [pics, searchTerm, sortBy]);
@@ -138,10 +137,6 @@ const CaseScreen = ({ route, navigation }: Props) => {
         launchCamera({
           quality: 1,
           mediaType: 'photo'
-          // storageOptions: {
-          //   skipBackup: true,
-          //   privateDirectory: true
-          // },
         }, async (response) => {
           if (response.didCancel) {
             console.log('User cancelled image picker');
@@ -187,10 +182,6 @@ const CaseScreen = ({ route, navigation }: Props) => {
       launchImageLibrary({
         selectionLimit: 0,
         mediaType: 'photo'
-        // storageOptions: {
-        //   skipBackup: true,
-        //   path: '/storage/emulated/0/DCIM'
-        // },
       }, async (response) => {
         if (response.didCancel) {
           console.log('User cancelled image picker');
@@ -204,7 +195,13 @@ const CaseScreen = ({ route, navigation }: Props) => {
               const uri = assets[index].uri;
               try {
                 const info = await savePicture(uri!, objName, caseName);
-                newPics.push({ name: info.name, path: info.path, caseName: caseName, timestamp: await getCTime(info.path) });
+                newPics.push({
+                  name: info.name,
+                  path: info.path,
+                  caseName: caseName,
+                  timestamp: await getCTime(info.path),
+                  url: genUrlFile(info.path)
+                });
 
               } catch (error) {
                 console.log(error)
@@ -249,7 +246,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
               return
             }
             try {
-              const newPic = await renamePicture(pic, caseName)
+              const newPic = await renamePicture(pic, name)
               let copyPics = [...pics];
               copyPics[selectedPicIndex] = newPic;
               setPics(copyPics);
@@ -303,6 +300,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
 
 
   return (
+    <SafeAreaView style={styles.safeAreaView}>
     <View style={styles.container}>
       <Header
         title={`${caseName} (${orderedPics.length})`}
@@ -328,7 +326,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
         icon="search"
       />
 
-      <SafeAreaView>
+      
         <FlatList<PicFilterResult>
           horizontal={false}
           data={orderedPics}
@@ -358,7 +356,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
                 <Image
                   style={styles.listPicture}
                   width={window.width * 0.3}
-                  source={{ uri: "file://" + item.pic.path }} />
+                  source={{ uri: item.pic.url }} />
                 <Text style={styles.listImageText}>{item.pic.name}</Text>
               </View>
 
@@ -367,7 +365,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
           keyExtractor={(item, index) => index.toString()}
         />
 
-      </SafeAreaView>
+     
 
       <Modal
         visible={modalVisible}
@@ -376,8 +374,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
           setModalVisible(false)
         }}>
         <ImageViewer imageUrls={orderedPics.map(item => {
-          // return { url: "file://" + pic.path + "#" + Math.random() }
-          return { url: "file://" + item.pic.path }
+          return { url: item.pic.url }
         })}
           index={selectedPicIndexFiltered}
         />
@@ -387,7 +384,9 @@ const CaseScreen = ({ route, navigation }: Props) => {
         animationType="fade"
         visible={showMenu}
         transparent={true}
-        onRequestClose={() => { }}
+        onRequestClose={() => {
+          setShowMenu(false);
+        }}
       >
         <Menu sortBy={sortBy} setSortBy={setSortBy} onClose={() => { setShowMenu(false) }} />
       </Modal>
@@ -410,6 +409,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
         />
       </RBSheet>
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -421,13 +421,6 @@ const styles = StyleSheet.create({
     backgroundColor: "white"
   },
   input: {
-    // height: 40,
-    // borderBottomWidth: 1,
-    // borderBottomColor: values.green_color,
-    // paddingLeft: 5,
-    // paddingRight: 5,
-    // fontSize: 15,
-    // fontWeight: "bold",
     marginBottom: 5
   },
   listPicture: {
@@ -462,6 +455,9 @@ const styles = StyleSheet.create({
   menuModal: {
 
     backgroundColor: "green"
+  },
+  safeAreaView:{
+    // height: 500
   }
 
 })

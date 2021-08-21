@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import {
   getCases,
@@ -45,10 +46,17 @@ const HomeScreen = ({ navigation }: Props) => {
   const [selectedCaseIndex, setSelectedCaseIndex] = useState<number>(-1);
   const refRBSheet = useRef<RBSheet>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = React.useState<boolean>(true);
 
   const reloadCases = async () => {
-    let cases_ = await getCases();
+    setRefreshing(true);
+    try {
+      let cases_ = await getCases();
     setCases(cases_);
+    } finally {
+      setRefreshing(false);
+    }
+    
   };
 
   const orderedCases = useMemo<string[]>(() => {
@@ -155,50 +163,25 @@ const HomeScreen = ({ navigation }: Props) => {
   const sharePics = async () => {
     const caseName = cases[selectedCaseIndex];
     const pics = await getCaseFiles(caseName);
-
-    setLoading(true);
-    try {
-      const options = {
-        title: 'Compartilhar',
-        message: caseName,
-        urls: pics,
-      };
-      const res = await Share.open(options);
-    } catch (error) {
-      Alert.alert(
-        'Erro',
-        'Houve um erro!',
-        [
-          {
-            text: 'OK',
-            onPress: () => { }
-          }
-        ],
-        { cancelable: false }
-      );
-    } finally {
-      refRBSheet.current?.close();
-      setLoading(false);
-    }
-
-
+    const options = {
+      title: 'Compartilhar',
+      message: caseName,
+      urls: pics,
+    };
+    await Share.open(options);
+    refRBSheet.current?.close();
   };
 
   const zipAndSharePics = async () => {
     const caseName = cases[selectedCaseIndex];
-    setLoading(true);
+    let path = '';
     try {
-      const path = await zipCase(caseName);
-      const options = {
-        title: 'Compartilhar',
-        message: caseName,
-        url: `file://${path}`,
-      };
-      const res = await Share.open(options);
+      setLoading(true);
+      path = await zipCase(caseName);
     } catch (error) {
       Alert.alert(
         'Erro',
-        'Houve um erro!',
+        'Houve um erro ao tentar comprimir os arquivos!',
         [
           {
             text: 'OK',
@@ -207,10 +190,16 @@ const HomeScreen = ({ navigation }: Props) => {
         ],
         { cancelable: false }
       );
-    } finally {
-      refRBSheet.current?.close();
       setLoading(false);
+      return
     }
+    setLoading(false);
+    const options = {
+      title: 'Compartilhar',
+      message: caseName,
+      url: `file://${path}`,
+    };
+    await Share.open(options);
 
     refRBSheet.current?.close();
   };
@@ -227,7 +216,7 @@ const HomeScreen = ({ navigation }: Props) => {
       },
       {
         text: 'Cancelar',
-        onPress: ()=>{},
+        onPress: () => { },
       },
     ], { cancelable: false });
   };
@@ -238,7 +227,7 @@ const HomeScreen = ({ navigation }: Props) => {
 
   return (
     <View style={styles.container}>
-      <Header onReload={reloadCases} />
+      <Header />
       <SafeAreaView>
         <Spinner
           visible={loading}
@@ -248,6 +237,12 @@ const HomeScreen = ({ navigation }: Props) => {
         <FlatList<string>
           horizontal={false}
           data={orderedCases}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={reloadCases}
+            />
+          }
           renderItem={({ item, index }) => (
             <TouchableOpacity
               style={styles.listItemContainer}

@@ -1,6 +1,7 @@
 export interface Pic {
     name: string,
     path: string,
+    url: string,
     timestamp?: number,
     caseName: string
 }

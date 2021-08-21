@@ -18,18 +18,18 @@ export default function Header({ onTakePicture, refreshing, onClear, onChoosePho
   return (
     <View style={styles.header}>
       <View style={styles.containerTitle} >
-        <ToolbarButton icon="arrow-back" onPress={onBack}/>
+        <ToolbarButton style={styles.button} icon="arrow-back" onPress={onBack} />
         <Text style={styles.headerText}>{title}</Text>
       </View>
 
       <View style={styles.buttonsContainer}>
         <Pressable>
-        <ActivityIndicator size={30} color={values.gold_color} animating={refreshing} />
+          <ActivityIndicator size={30} color={values.gold_color} animating={refreshing} />
         </Pressable>
-      
-        <ToolbarButton icon="delete" onPress={onClear} />
-        <ToolbarButton icon="collections" onPress={onChoosePhoto} />
-        <ToolbarButton icon="photo-camera" onPress={onTakePicture} />
+
+        <ToolbarButton style={styles.button} icon="delete" onPress={onClear} />
+        <ToolbarButton style={styles.button} icon="collections" onPress={onChoosePhoto} />
+        <ToolbarButton style={styles.button} icon="photo-camera" onPress={onTakePicture} />
         <ToolbarButton icon="more-vert" onPress={onShowMenu} />
       </View>
     </View>
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  containerTitle:{
+  containerTitle: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
@@ -62,4 +62,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "white"
   },
+  button: {
+    marginRight: 15
+  }
 })

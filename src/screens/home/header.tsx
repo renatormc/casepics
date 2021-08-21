@@ -1,19 +1,19 @@
 import { View, Text, StyleSheet } from 'react-native';
 import * as React from 'react';
-import ToolbarButton from '../../components/toolbar_button';
+// import ToolbarButton from '../../components/toolbar_button';
 import values from '../../values';
 
 type Props = {
-  onReload: () => void
+  
 }
 
-export default function Header({ onReload }: Props) {
+export default function Header() {
 
   return (
     <View style={styles.header}>
       <Text style={styles.headerText}>Casos</Text>
       <View style={styles.buttonsContainer}>
-        <ToolbarButton icon="refresh" onPress={onReload} />
+        {/* <ToolbarButton icon="refresh" onPress={onReload} /> */}
       </View>
     </View>
   );
