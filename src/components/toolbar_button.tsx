@@ -29,7 +29,7 @@ export default function ToolbarButton({icon, onPress}: Props) {
 
 const styles = StyleSheet.create({
     container: {
-        marginRight: 15
+        marginLeft: 15
     },
     icon: {
       color: values.gold_color,

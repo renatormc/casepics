@@ -10,9 +10,10 @@ type Props = {
   onClear: () => void,
   onChoosePhoto: () => void,
   onBack: () => void,
+  onShowMenu: () => void,
 }
 
-export default function Header({ onTakePicture, refreshing, onClear, onChoosePhoto, onBack, title }: Props) {
+export default function Header({ onTakePicture, refreshing, onClear, onChoosePhoto, onBack, onShowMenu, title }: Props) {
 
   return (
     <View style={styles.header}>
@@ -29,6 +30,7 @@ export default function Header({ onTakePicture, refreshing, onClear, onChoosePho
         <ToolbarButton icon="delete" onPress={onClear} />
         <ToolbarButton icon="collections" onPress={onChoosePhoto} />
         <ToolbarButton icon="photo-camera" onPress={onTakePicture} />
+        <ToolbarButton icon="more-vert" onPress={onShowMenu} />
       </View>
     </View>
   );
@@ -37,7 +39,7 @@ export default function Header({ onTakePicture, refreshing, onClear, onChoosePho
 const styles = StyleSheet.create({
   header: {
     paddingLeft: 5,
-    paddingRight: 10,
+    paddingRight: 0,
     width: "100%",
     height: 50,
     flexDirection: "row",

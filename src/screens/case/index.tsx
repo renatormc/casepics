@@ -1,4 +1,5 @@
-import { TextInput, View, StyleSheet, Text, SafeAreaView, FlatList, TouchableOpacity, Modal, Alert, PermissionsAndroid, Image, useWindowDimensions, RefreshControl } from 'react-native';
+import { View, StyleSheet, Text, SafeAreaView, FlatList, TouchableOpacity, Modal, Alert, PermissionsAndroid, Image, useWindowDimensions, RefreshControl } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import React, { useState, useRef, useEffect } from 'react';
 import RBSheet from "react-native-raw-bottom-sheet";
 import Header from './header';
@@ -14,11 +15,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Pic, PicFilterResult } from '../../types/interfaces';
 import { useMemo } from 'react';
 import InputWidget from '../../components/input_widget';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Menu from './menu';
 
 
-type CaseScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Note'>;
-type CaseScreenRouteProp = RouteProp<RootNavigationParamsList, 'Note'>;
+type CaseScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Case'>;
+type CaseScreenRouteProp = RouteProp<RootNavigationParamsList, 'Case'>;
 
 type Props = {
 
@@ -36,11 +37,12 @@ const CaseScreen = ({ route, navigation }: Props) => {
   const [selectedPicIndex, setSelectedPicIndex] = useState<number>(-1);
   const [selectedPicIndexFiltered, setSelectedPicIndexFiltered] = useState<number>(-1);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
-  // const [imageModalUrl, setImageModalUrl] = useState<string>("");
   const refRBSheet = useRef<RBSheet>(null);
   const caseName = route.params.caseName;
   const window = useWindowDimensions();
   const [refreshing, setRefreshing] = React.useState<boolean>(true);
+  const [sortBy, setSortBy] = useState<"timestamp" | "alpha">("alpha");
+  const [showMenu, setShowMenu] = useState<boolean>(false);
 
   const orderedPics = useMemo<PicFilterResult[]>(() => {
     const mapedPics: PicFilterResult[] = pics.map((pic, index) => {
@@ -52,8 +54,24 @@ const CaseScreen = ({ route, navigation }: Props) => {
     const filtered = mapedPics.filter((item, index) => {
       return item.pic.name.toLowerCase().includes(searchTerm.toLowerCase());
     })
-    return filtered.sort((a, b) => a.pic.name.localeCompare(b.pic.name));
-  }, [pics, searchTerm]);
+    if (sortBy == 'timestamp') {
+      return filtered.sort((a, b) => {
+        if (a.pic.timestamp === undefined) {
+          return -1;
+        }
+        if (b.pic.timestamp === undefined) {
+          return 1;
+        }
+        if (a.pic.timestamp < b.pic.timestamp) {
+          return -1
+        }
+        return 1;
+      });
+    } else {
+      return filtered.sort((a, b) => a.pic.name.localeCompare(b.pic.name));
+    }
+
+  }, [pics, searchTerm, sortBy]);
 
   const reloadPics = async () => {
     setRefreshing(true);
@@ -286,7 +304,15 @@ const CaseScreen = ({ route, navigation }: Props) => {
 
   return (
     <View style={styles.container}>
-      <Header title={`${caseName} (${orderedPics.length})`} onClear={clearFolderWrap} onTakePicture={takePicture} refreshing={refreshing} onChoosePhoto={pickPictures} onBack={goToCases} />
+      <Header
+        title={`${caseName} (${orderedPics.length})`}
+        onClear={clearFolderWrap}
+        onTakePicture={takePicture}
+        refreshing={refreshing}
+        onChoosePhoto={pickPictures}
+        onBack={goToCases}
+        onShowMenu={() => { setShowMenu(true) }}
+      />
       <InputWidget
         style={styles.input}
         onChangeText={setObjName}
@@ -301,7 +327,6 @@ const CaseScreen = ({ route, navigation }: Props) => {
         placeholder="Digite algo para pesquisar..."
         icon="search"
       />
-
 
       <SafeAreaView>
         <FlatList<PicFilterResult>
@@ -341,7 +366,9 @@ const CaseScreen = ({ route, navigation }: Props) => {
           )}
           keyExtractor={(item, index) => index.toString()}
         />
+
       </SafeAreaView>
+
       <Modal
         visible={modalVisible}
         transparent={false}
@@ -354,6 +381,15 @@ const CaseScreen = ({ route, navigation }: Props) => {
         })}
           index={selectedPicIndexFiltered}
         />
+      </Modal>
+      <Modal
+        style={styles.menuModal}
+        animationType="fade"
+        visible={showMenu}
+        transparent={true}
+        onRequestClose={() => { }}
+      >
+        <Menu sortBy={sortBy} setSortBy={setSortBy} onClose={() => { setShowMenu(false) }} />
       </Modal>
       <RBSheet
         ref={refRBSheet}
@@ -412,6 +448,20 @@ const styles = StyleSheet.create({
   listImageText: {
     color: values.green_color,
     fontWeight: "bold"
+  },
+  picker: {
+    width: "100%",
+    fontSize: 8,
+    position: "absolute",
+    bottom: 0,
+    backgroundColor: "#F0F0F0",
+    height: 8,
+    borderRadius: 15,
+    padding: 10,
+  },
+  menuModal: {
+
+    backgroundColor: "green"
   }
 
 })

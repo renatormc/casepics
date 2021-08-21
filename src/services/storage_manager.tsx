@@ -14,15 +14,17 @@ const getPics = async (caseName: string): Promise<Pic[]> => {
     await prepareFolder(caseFolder);
     let files = await RNFS.readDir(caseFolder)
     files = files.filter((file) => file.isFile() && (file.name.endsWith(".jpg") || file.name.endsWith(".png")))
-    return files.map(file => {
+    const promises = files.map(async file => {
+
         return {
             name: file.name.replace(/\.[^/.]+$/, ""),
             // source: "file://" + file.path + "#" + Math.random()
             path: file.path,
-            timestamp: file.ctime?.getTime(),
+            timestamp: (await getCTime(file.path)),
             caseName: caseName
         }
     })
+    return Promise.all(promises);
 }
 
 const getCaseFiles = async (caseName: string): Promise<string[]> => {
@@ -70,7 +72,7 @@ async function renamePicture(pic: Pic, newName: string): Promise<Pic> {
 
 async function getCTime(path: string): Promise<number> {
     const info = await RNFS.stat(path);
-    return info.ctime;
+    return info.ctime.getTime();
 }
 
 async function savePicture(tempPath: string, name: string, caseName: string): Promise<Pic> {
