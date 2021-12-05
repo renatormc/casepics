@@ -7,9 +7,10 @@ type Props = {
     onRename: () => void,
     onDelete: () => void,
     onShare: () => void,
+    onChangefolder: () => void
 }
 
-export default function BottomSheet({onDelete, onRename, onShare}: Props) {
+export default function BottomSheet({onDelete, onRename, onShare, onChangefolder}: Props) {
     return (
         <View style={styles.container}>
             <TouchableOpacity
@@ -46,6 +47,17 @@ export default function BottomSheet({onDelete, onRename, onShare}: Props) {
                     </Text>
                 </View>
             </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.item}
+                onPress={onChangefolder}
+            >
+                <View style={styles.itemContainer}>
+                    <Icon style={styles.itemIcon} name="folder" size={18} />
+                    <Text style={styles.text}>
+                        Mover para outra pasta
+                    </Text>
+                </View>
+            </TouchableOpacity>
         </View>
     )
 }
@@ -66,7 +78,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
     },
     item: {
-        width: Dimensions.get('window').width / 2,
+        width: Dimensions.get('window').width ,
         padding: 15
     },
     text: {

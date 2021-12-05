@@ -15,6 +15,7 @@ import { Pic, PicFilterResult } from '../../types/interfaces';
 import { useMemo } from 'react';
 import InputWidget from '../../components/input_widget';
 import Menu from './menu';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
 type CaseScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Case'>;
@@ -75,7 +76,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
   const reloadPics = async () => {
     setRefreshing(true);
     try {
-      const pics = await getPics(caseName);
+      const pics = await getPics(caseName, route.params.folder2);
       setPics(pics)
     } catch (error) {
       console.log(error)
@@ -97,7 +98,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
         },
         {
           text: 'SIM', onPress: async () => {
-            await clearFolder(caseName);
+            await clearFolder(caseName, route.params.folder2);
             reloadPics();
           }
         }
@@ -146,7 +147,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
             const uri = response.assets?.[0].uri;
             if (uri != undefined) {
               try {
-                const newPic = await savePicture(uri, objName, caseName);
+                const newPic = await savePicture(uri, objName, caseName, route.params.folder2);
                 setPics([...pics, newPic]);
               } catch (error) {
                 console.log(error)
@@ -194,7 +195,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
             for (let index = 0; index < assets.length; index++) {
               const uri = assets[index].uri;
               try {
-                const info = await savePicture(uri!, objName, caseName);
+                const info = await savePicture(uri!, objName, caseName, route.params.folder2);
                 newPics.push({
                   name: info.name,
                   path: info.path,
@@ -219,16 +220,34 @@ const CaseScreen = ({ route, navigation }: Props) => {
 
   const deletePic = async () => {
     refRBSheet.current?.close();
-    try {
-      await deletePicture(pics[selectedPicIndex])
-      let newPics = [...pics];
-      newPics.splice(selectedPicIndex, 1)
-      setPics(newPics);
-      setSelectedPicIndex(-1);
-      setSelectedPicIndexFiltered(-1);
-    } catch (error) {
-      console.log(error)
-    }
+    Alert.alert(
+      'Deletar foto',
+      `Tem certeza de que deseja deletar a foto "${pics[selectedPicIndex].name}"?`,
+      [
+
+        {
+          text: 'Não',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel'
+        },
+        {
+          text: 'SIM', onPress: async () => {
+            try {
+              await deletePicture(pics[selectedPicIndex], route.params.folder2)
+              let newPics = [...pics];
+              newPics.splice(selectedPicIndex, 1)
+              setPics(newPics);
+              setSelectedPicIndex(-1);
+              setSelectedPicIndexFiltered(-1);
+            } catch (error) {
+              console.log(error)
+            }
+          }
+        }
+      ],
+      { cancelable: false }
+    );
+
   }
 
   const renamePic = async () => {
@@ -246,7 +265,7 @@ const CaseScreen = ({ route, navigation }: Props) => {
               return
             }
             try {
-              const newPic = await renamePicture(pic, name)
+              const newPic = await renamePicture(pic, name, route.params.folder2)
               let copyPics = [...pics];
               copyPics[selectedPicIndex] = newPic;
               setPics(copyPics);
@@ -278,12 +297,13 @@ const CaseScreen = ({ route, navigation }: Props) => {
   const goToCases = async () => {
     console.log("Ir para casos")
     saveLastObjectName(caseName, objName);
-    navigation.navigate('Home');
+    navigation.navigate('Home', { folder2: route.params.folder2 });
   }
 
   const editNote = async () => {
     navigation.navigate('Note', {
-      pic: pics[selectedPicIndex]
+      pic: pics[selectedPicIndex],
+      folder2: route.params.folder2
     });
   }
 
@@ -297,36 +317,41 @@ const CaseScreen = ({ route, navigation }: Props) => {
     loadLastObjeName();
   }, []);
 
-
+  let shortCaseName = useMemo(() => {
+    const maxsize = 20;
+    if (caseName.length > maxsize) {
+      return caseName.substring(0, maxsize) + "...";
+    }
+    return caseName;
+  }, [caseName]);
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
-    <View style={styles.container}>
-      <Header
-        title={`${caseName} (${orderedPics.length})`}
-        onClear={clearFolderWrap}
-        onTakePicture={takePicture}
-        refreshing={refreshing}
-        onChoosePhoto={pickPictures}
-        onBack={goToCases}
-        onShowMenu={() => { setShowMenu(true) }}
-      />
-      <InputWidget
-        style={styles.input}
-        onChangeText={setObjName}
-        value={objName}
-        placeholder="Nome do objeto"
-        icon="edit"
-      />
-      <InputWidget
-        style={styles.input}
-        onChangeText={setSearchTerm}
-        value={searchTerm}
-        placeholder="Digite algo para pesquisar..."
-        icon="search"
-      />
+      <View style={styles.container}>
+        <Header
+          title={`${shortCaseName} (${orderedPics.length})`}
+          onClear={clearFolderWrap}
+          refreshing={refreshing}
+          onChoosePhoto={pickPictures}
+          onBack={goToCases}
+          onShowMenu={() => { setShowMenu(true) }}
+        />
+        <InputWidget
+          style={styles.input}
+          onChangeText={setObjName}
+          value={objName}
+          placeholder="Nome do objeto"
+          icon="edit"
+        />
+        <InputWidget
+          style={styles.input}
+          onChangeText={setSearchTerm}
+          value={searchTerm}
+          placeholder="Digite algo para pesquisar..."
+          icon="search"
+        />
 
-      
+
         <FlatList<PicFilterResult>
           horizontal={false}
           data={orderedPics}
@@ -365,50 +390,53 @@ const CaseScreen = ({ route, navigation }: Props) => {
           keyExtractor={(item, index) => index.toString()}
         />
 
-     
 
-      <Modal
-        visible={modalVisible}
-        transparent={false}
-        onRequestClose={() => {
-          setModalVisible(false)
-        }}>
-        <ImageViewer imageUrls={orderedPics.map(item => {
-          return { url: item.pic.url }
-        })}
-          index={selectedPicIndexFiltered}
-        />
-      </Modal>
-      <Modal
-        style={styles.menuModal}
-        animationType="fade"
-        visible={showMenu}
-        transparent={true}
-        onRequestClose={() => {
-          setShowMenu(false);
-        }}
-      >
-        <Menu sortBy={sortBy} setSortBy={setSortBy} onClose={() => { setShowMenu(false) }} />
-      </Modal>
-      <RBSheet
-        ref={refRBSheet}
-        openDuration={250}
-        customStyles={{
-          container: {
-            justifyContent: "flex-start",
-            alignItems: "flex-start",
-            height: 230
-          }
-        }}
-      >
-        <BottomSheet
-          onDeletePress={deletePic}
-          onVizualizePress={vizualizePic}
-          onRenamePress={renamePic}
-          onEditNote={editNote}
-        />
-      </RBSheet>
-    </View>
+
+        <Modal
+          visible={modalVisible}
+          transparent={false}
+          onRequestClose={() => {
+            setModalVisible(false)
+          }}>
+          <ImageViewer imageUrls={orderedPics.map(item => {
+            return { url: item.pic.url }
+          })}
+            index={selectedPicIndexFiltered}
+          />
+        </Modal>
+        <Modal
+          style={styles.menuModal}
+          animationType="fade"
+          visible={showMenu}
+          transparent={true}
+          onRequestClose={() => {
+            setShowMenu(false);
+          }}
+        >
+          <Menu sortBy={sortBy} setSortBy={setSortBy} onClose={() => { setShowMenu(false) }} />
+        </Modal>
+        <RBSheet
+          ref={refRBSheet}
+          openDuration={250}
+          customStyles={{
+            container: {
+              justifyContent: "flex-start",
+              alignItems: "flex-start",
+              height: 230
+            }
+          }}
+        >
+          <BottomSheet
+            onDeletePress={deletePic}
+            onVizualizePress={vizualizePic}
+            onRenamePress={renamePic}
+            onEditNote={editNote}
+          />
+        </RBSheet>
+        <TouchableOpacity style={styles.fab} onPress={takePicture}>
+          <Icon style={styles.fabIcon} name="photo-camera" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -456,9 +484,25 @@ const styles = StyleSheet.create({
 
     backgroundColor: "green"
   },
-  safeAreaView:{
+  safeAreaView: {
     // height: 500
-  }
+  },
+  fab: {
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70,
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    height: 70,
+    backgroundColor: values.blue_color,
+    borderRadius: 100,
+  },
+  fabIcon: {
+    color: values.gold_color,
+  },
 
 })
 

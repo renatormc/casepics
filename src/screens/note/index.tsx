@@ -24,14 +24,15 @@ export default function NoteScreen({ navigation, route }: Props) {
    
 
     const save = async () => {
-        await saveNote(pic, noteText);
+        await saveNote(pic, noteText, route.params.folder2);
         navigation.navigate('Case', {
-            caseName: pic.caseName
+            caseName: pic.caseName,
+            folder2: route.params.folder2
         });
     }
 
     const loadNote = async () => {
-       const text = await getNote(pic);
+       const text = await getNote(pic, route.params.folder2);
        setNoteText(text);
     }
 

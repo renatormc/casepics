@@ -7,7 +7,7 @@ import RootNavigator from './navigation/root_navigator';
 const App = () => {
   return (
     <NavigationContainer>
-     <RootNavigator></RootNavigator>
+      <RootNavigator></RootNavigator>
     </NavigationContainer>
   );
 };

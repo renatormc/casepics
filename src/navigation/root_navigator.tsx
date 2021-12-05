@@ -7,12 +7,16 @@ import { Pic } from '../types/interfaces';
 
 
 export type RootNavigationParamsList = {
-    Home: undefined, 
+    Home: {
+        folder2: boolean
+    }, 
     Case: {
-        caseName: string
+        caseName: string,
+        folder2: boolean
     },
     Note: {
-        pic: Pic
+        pic: Pic,
+        folder2: boolean
     },
 };
 
@@ -29,6 +33,7 @@ const RootNavigator = () => {
             <Stack.Screen
                 name="Home"
                 component={HomeScreen}
+                initialParams={{folder2: false}}
             />
             <Stack.Screen
                 name="Case"

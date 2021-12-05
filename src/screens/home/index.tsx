@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import {
   getCases,
@@ -18,6 +19,7 @@ import {
   deleteCase,
   zipCase,
   getCaseFiles,
+  moveCaseFolder
 } from '../../services/storage_manager';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import BottomSheet from './bottom_sheet';
@@ -30,33 +32,34 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootNavigationParamsList } from '../../navigation/root_navigator';
 import { CaseExistsError } from '../../types/interfaces';
+import Menu from './menu';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootNavigationParamsList, 'Home'>;
 type HomeScreenRouteProp = RouteProp<RootNavigationParamsList, 'Home'>;
 
 type Props = {
-
   navigation: HomeScreenNavigationProp,
   route: HomeScreenRouteProp
 };
 
 
-const HomeScreen = ({ navigation }: Props) => {
+const HomeScreen = ({ navigation, route }: Props) => {
   const [cases, setCases] = useState<string[]>([]);
   const [selectedCaseIndex, setSelectedCaseIndex] = useState<number>(-1);
   const refRBSheet = useRef<RBSheet>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = React.useState<boolean>(true);
+  const [showMenu, setShowMenu] = useState<boolean>(false);
 
   const reloadCases = async () => {
     setRefreshing(true);
     try {
-      let cases_ = await getCases();
-    setCases(cases_);
+      let cases_ = await getCases(route.params.folder2);
+      setCases(cases_);
     } finally {
       setRefreshing(false);
     }
-    
+
   };
 
   const orderedCases = useMemo<string[]>(() => {
@@ -77,7 +80,7 @@ const HomeScreen = ({ navigation }: Props) => {
               return;
             }
             try {
-              const createdName = await createCase(name);
+              const createdName = await createCase(name, route.params.folder2);
               setCases([...cases, createdName]);
             } catch (error) {
               if (error instanceof CaseExistsError) {
@@ -124,7 +127,7 @@ const HomeScreen = ({ navigation }: Props) => {
             }
 
             try {
-              newName = await renameCase(oldName, newName);
+              newName = await renameCase(oldName, newName, route.params.folder2);
               let copyCases = [...cases];
               copyCases[selectedCaseIndex] = newName;
               setCases(copyCases);
@@ -151,18 +154,40 @@ const HomeScreen = ({ navigation }: Props) => {
     refRBSheet.current?.close();
     navigation.navigate('Case', {
       caseName: caseName.toString(),
+      folder2: route.params.folder2
     });
   };
 
   const deleteCaseWrapper = async () => {
     refRBSheet.current?.close();
-    await deleteCase(cases[selectedCaseIndex]);
-    reloadCases();
+    Alert.alert(
+      'Deletar foto',
+      `Tem certeza de que deseja deletar o caso "${cases[selectedCaseIndex]}"?`,
+      [
+
+        {
+          text: 'Não',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel'
+        },
+        {
+          text: 'SIM', onPress: async () => {
+            try {
+              await deleteCase(cases[selectedCaseIndex], route.params.folder2);
+              reloadCases();
+            } catch (error) {
+              console.log(error)
+            }
+          }
+        }
+      ],
+      { cancelable: false }
+    );
   };
 
   const sharePics = async () => {
     const caseName = cases[selectedCaseIndex];
-    const pics = await getCaseFiles(caseName);
+    const pics = await getCaseFiles(caseName, route.params.folder2);
     const options = {
       title: 'Compartilhar',
       message: caseName,
@@ -177,7 +202,7 @@ const HomeScreen = ({ navigation }: Props) => {
     let path = '';
     try {
       setLoading(true);
-      path = await zipCase(caseName);
+      path = await zipCase(caseName, route.params.folder2);
     } catch (error) {
       Alert.alert(
         'Erro',
@@ -221,13 +246,48 @@ const HomeScreen = ({ navigation }: Props) => {
     ], { cancelable: false });
   };
 
+  const moveToOtherFolder = async () => {
+    refRBSheet.current?.close();
+    try {
+      await moveCaseFolder(cases[selectedCaseIndex], route.params.folder2);
+      reloadCases();
+    } catch (error) {
+      if (error instanceof CaseExistsError) {
+        Alert.alert(
+          'Erro',
+          `Já existe um caso de nome "${cases[selectedCaseIndex]}" na outra pasta.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => { }
+            }
+          ],
+          { cancelable: false }
+        );
+      } else {
+        console.log(error);
+      }
+    }
+    // await deleteCase(cases[selectedCaseIndex], route.params.folder2);
+
+  }
+
+  const changeFolder = async (folder: "folder1" | "folder2") => {
+    const folder2 = folder === "folder2";
+    navigation.navigate('Home', { folder2: folder2 });
+  }
+
   useEffect(() => {
     reloadCases();
-  }, []);
+  }, [route.params.folder2]);
+
+  let title = useMemo(() => {
+    return route.params.folder2 ? "Pasta 2" : "Pasta 1";
+  }, [route.params.folder2]);
 
   return (
     <View style={styles.container}>
-      <Header />
+      <Header title={title} onShowMenu={() => { setShowMenu(true) }} />
       <SafeAreaView>
         <Spinner
           visible={loading}
@@ -262,6 +322,17 @@ const HomeScreen = ({ navigation }: Props) => {
           )}
           keyExtractor={(item, index) => index.toString()}
         />
+        <Modal
+          style={styles.menuModal}
+          animationType="fade"
+          visible={showMenu}
+          transparent={true}
+          onRequestClose={() => {
+            setShowMenu(false);
+          }}
+        >
+          <Menu folder2={route.params.folder2} setFolder={changeFolder} onClose={() => { setShowMenu(false) }} />
+        </Modal>
       </SafeAreaView>
       <RBSheet
         ref={refRBSheet}
@@ -270,13 +341,14 @@ const HomeScreen = ({ navigation }: Props) => {
           container: {
             justifyContent: 'flex-start',
             alignItems: 'flex-start',
-            height: 200,
+            height: 250
           },
         }}>
         <BottomSheet
           onDelete={deleteCaseWrapper}
           onRename={renameCaseWraper}
           onShare={share}
+          onChangefolder={moveToOtherFolder}
         />
       </RBSheet>
 
@@ -326,6 +398,10 @@ const styles = StyleSheet.create({
   },
   spinnerTextStyle: {
     color: '#FFF',
+  },
+  menuModal: {
+
+    backgroundColor: "green"
   },
 });
 
